@@ -2,7 +2,10 @@ package loadbalance
 
 // https://talks.golang.org/2012/waza.slide
 
-import "container/heap"
+import (
+	"container/heap"
+	"log"
+)
 
 /////////////////////////////////////////////////////////////////
 //
@@ -84,15 +87,18 @@ type Balancer struct {
 	done chan *Worker
 }
 
-func (b *Balancer) dispatch(req Request) {
+func (b *Balancer) dispatch(req Request) *Worker {
 	// grab the least loaded worker
 	w := heap.Pop(&b.pool).(*Worker)
+	log.Printf("Worker(%v) selected for Request(%v)\n", w, req)
 	// ... send it the task
 	w.requests <- req
 	// One more in its work queue
 	w.pending++
 	// Put it into its place on the heap
 	heap.Push(&b.pool, w)
+
+	return w
 }
 
 func (b *Balancer) completed(w *Worker) {
