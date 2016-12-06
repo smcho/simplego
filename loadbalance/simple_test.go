@@ -56,11 +56,14 @@ type NumberedWorker struct {
 
 func TestMultipleWorker(t *testing.T) {
 	requestChannel := make(chan Request, 100)
-	//defer close(requestChannel)
 	responseChannel := make(chan interface{}, 100)
-	//defer close(responseChannel)
 	jobDoneSignalChannel := make(chan *Worker, 100)
-	//defer close(jobDoneSignalChannel)
+
+	defer func() {
+		defer close(requestChannel)
+		defer close(responseChannel)
+		defer close(jobDoneSignalChannel)
+	}()
 
 	pool := make(Pool, 0, 5)
 	for i := 0; i < cap(pool); i++ {
@@ -95,7 +98,7 @@ func TestMultipleWorker(t *testing.T) {
 	nWorker := int64(len(pool))
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		genDurationMsecs := time.Duration(rand.Int63n(1000))
 		time.Sleep(genDurationMsecs * time.Millisecond)
 

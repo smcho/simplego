@@ -71,7 +71,7 @@ func (p *Pool) Pop() interface{} {
 	old := *p
 	n := len(old)
 	w := old[n-1]
-	w.index = -1 // for safety
+	//w.index = -1 // for safety
 	*p = old[0 : n-1]
 	return w
 }
@@ -111,11 +111,22 @@ func (b *Balancer) completed(w *Worker) {
 }
 
 func (b *Balancer) balance(requests chan Request) {
+	defer func() {
+		log.Printf("Balancer(%v) shutdown", *b)
+	}()
+
+	FOR_LOOP:
 	for {
 		select {
-		case req := <-requests: // received a Request
+		case req, reqchok := <-requests: // received a Request
+			if !reqchok {
+				break FOR_LOOP;
+			}
 			b.dispatch(req) // ... so send it to a worker
-		case worker := <-b.done: // a worker has finished
+		case worker, donechok := <-b.done: // a worker has finished
+			if !donechok {
+				break FOR_LOOP
+			}
 			b.completed(worker) // ... so update its info
 		}
 	}
