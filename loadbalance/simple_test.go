@@ -2,12 +2,18 @@ package loadbalance
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
-	"sync"
-	"log"
+	"os"
 )
+
+func init() {
+	log.SetOutput(os.Stdout)
+	log.SetFlags(log.Ldate | log.Lmicroseconds)
+}
 
 func TestSingleWorkerWithSingleJob(t *testing.T) {
 	worker := Worker{
@@ -55,9 +61,9 @@ type NumberedWorker struct {
 }
 
 func TestMultipleWorker(t *testing.T) {
-	requestChannel := make(chan Request, 100)
-	responseChannel := make(chan interface{}, 100)
-	jobDoneSignalChannel := make(chan *Worker, 100)
+	requestChannel := make(chan Request, 10)
+	responseChannel := make(chan interface{}, 10)
+	jobDoneSignalChannel := make(chan *Worker, 10)
 
 	defer func() {
 		defer close(requestChannel)
@@ -68,7 +74,7 @@ func TestMultipleWorker(t *testing.T) {
 	pool := make(Pool, 0, 5)
 	for i := 0; i < cap(pool); i++ {
 		w := Worker{
-			requests: make(chan Request, 10),
+			requests: make(chan Request, 20),	// this buffer size is important to avoid deadlock(all goroutines are waiting)
 			pending:  0,
 			index:    -1,
 		}
@@ -90,8 +96,10 @@ func TestMultipleWorker(t *testing.T) {
 
 	go func() {
 		for v := range responseChannel {
-			fmt.Printf("%d\n", v)
-			wg.Done()
+			go func(val interface{}) {
+				log.Printf("<- %d", val)
+				wg.Done()
+			}(v)
 		}
 	}()
 
@@ -99,22 +107,22 @@ func TestMultipleWorker(t *testing.T) {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	for i := 0; i < 100; i++ {
-		genDurationMsecs := time.Duration(rand.Int63n(1000))
-		time.Sleep(genDurationMsecs * time.Millisecond)
-
+		genDurationMsecs := time.Duration(rand.Int63n(nWorker * 1000))
 		workDurationMsecs := time.Duration(rand.Int63n(nWorker * 1000))
 
-		log.Printf("%d(msecs)-load generated : expected return is %v", workDurationMsecs, i)
+		go func(val interface{}) {
+			time.Sleep(genDurationMsecs * time.Millisecond)
 
-		requestChannel <- Request{
-			fn: func(val interface{}) func() interface{} {
-				return func() interface{} {
+			requestChannel <- Request{
+				fn: func() interface{} {
 					time.Sleep(workDurationMsecs * time.Millisecond)
 					return val
-				}
-			}(i),
-			c: responseChannel,
-		}
+				},
+				c: responseChannel,
+			}
+			log.Printf("%d(msecs)-load generated : expected return is %v", workDurationMsecs, val)
+		}(i)
+
 		wg.Add(1)
 	}
 
