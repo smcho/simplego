@@ -1,0 +1,230 @@
+package main
+
+import (
+	"log"
+	"os"
+	"reflect"
+	"unsafe"
+)
+
+func init() {
+	log.SetOutput(os.Stdout)
+	log.SetFlags(log.Lmicroseconds)
+}
+
+func logStringSlice(prefix string, slice *[]string) {
+	log.Printf(prefix+": %v->%v, length=%d, capacity=%d, isNil=%t", (*reflect.SliceHeader)(unsafe.Pointer(&slice)), *slice, len(*slice), cap(*slice), *slice == nil)
+}
+
+func logIntSlice(prefix string, slice *[]int) {
+	log.Printf(prefix+": %v->%v, length=%d, capacity=%d, isNil=%t", (*reflect.SliceHeader)(unsafe.Pointer(&slice)), *slice, len(*slice), cap(*slice), *slice == nil)
+}
+
+func createAndInitSlice() {
+	log.Println("-------------------------------------------------------------------------")
+	log.Println("| creation and initialization of slices")
+	log.Println("-------------------------------------------------------------------------")
+
+	func() {
+		slice := make([]string, 5)
+		logStringSlice("a slice of string, created by make() with length 5", &slice)
+	}()
+
+	func() {
+		slice := make([]string, 3, 5)
+		logStringSlice("a slice of string, created by make() with length 3, capacity 5", &slice)
+	}()
+
+	func() {
+		slice := []string{"Red", "Blue", "Green", "Yellow", "Pink"}
+		logStringSlice("a slice of string, initialized by a slice literal", &slice)
+	}()
+
+	func() {
+		slice := []int{10, 20, 30}
+		logIntSlice("a slice of integer, initialized by a slice literal", &slice)
+	}()
+
+	func() {
+		slice := []string{9: ""}
+		logStringSlice("a slice of string, initialized by the 10th element with an empty string", &slice)
+	}()
+
+	func() {
+		// A nil slice -> represent a slice that doesn't exist
+		// A nil slice equals(==) to nil!!!
+		var slice []int
+		logIntSlice("a nil slice", &slice)
+	}()
+
+	func() {
+		// an empty slice -> represent an empty collection, such as when a database query returns zero results
+		slice := make([]int, 0)
+		logIntSlice("an empty slice", &slice)
+	}()
+
+	func() {
+		// another way to create an empty slice
+		slice := []int{}
+		logIntSlice("another empty slice", &slice)
+
+		slice = nil // this nil assignments is possible
+		logIntSlice("after assign nil to an slice type variable", &slice)
+	}()
+
+	log.Println("")
+}
+
+func manipulateSlice() {
+	func() {
+		log.Println("-------------------------------------------------------------------------")
+		log.Println("| slicing and modification by []")
+		log.Println("-------------------------------------------------------------------------")
+
+		slice := []int{10, 20, 30, 40, 50}
+		logIntSlice("initial", &slice)
+
+		slice[1] = 25
+		logIntSlice("after modifying by [] operator", &slice)
+
+		newSlice := slice[1:3]
+		logIntSlice("derived slice", &newSlice)
+
+		slice[1] = 26 // affects the slice derived from this slice <- After the slicing operation performed, the two slices share the same underlying array!
+		logIntSlice("after another modifying on the original slice by [] operator", &slice)
+		logIntSlice("derived slice, after modifying the original slice", &newSlice)
+
+		newSlice[1] = 35 // affects the original slice
+		logIntSlice("after modifying the derived slice by [] operator", &newSlice)
+		logIntSlice("original slice, after modifying the derived slice", &slice)
+
+		log.Println("")
+	}()
+
+	func() {
+		log.Println("-------------------------------------------------------------------------")
+		log.Println("| append()")
+		log.Println("-------------------------------------------------------------------------")
+
+		// TODO: append()가 이해 안 가는 방식으로 동작한다!
+		// append()의 결과물로 항상 새 slice가 나오는 것처럼 보이지만 막상 array는 공유되는 듯
+		// 무조건 s = append(s, ...) 이렇게 써야하는 건가?
+		// 함수에 slice를 넘겨주고 그 안에서 append()를 하면, slice를 반환하지 않는 이상 caller에서는 변경된 slice를 볼 수 없는건가?
+
+		slice := make([]int, 0, 5)
+		logIntSlice("empty slice with 5 capacity", &slice)
+
+		appended1 := append(slice, 1)
+		logIntSlice("after appending an element", &appended1)
+		logIntSlice("original slice", &slice)
+
+		appended2 := append(slice, 2, 3)
+		logIntSlice("after appending another element", &appended2)
+		logIntSlice("first appended slice, after appending an element", &appended1)
+		logIntSlice("original slice", &slice)
+	}()
+
+	func() {
+		log.Println("-------------------------------------------------------------------------")
+		log.Println("| slicing and append()")
+		log.Println("-------------------------------------------------------------------------")
+
+		slice := []int{10, 20, 30, 40, 50}
+		logIntSlice("initial", &slice)
+
+		newSlice := slice[1:3]
+		logIntSlice("derived slice", &newSlice)
+
+		newSlice = append(newSlice, 60)
+		logIntSlice("after appending[no growing] to the derived slice", &newSlice)
+		logIntSlice("original slice, after appending[no growing] to the derived slice", &slice)
+
+		newSlice2 := append(newSlice, 70, 80)
+		logIntSlice("after appending[growing] to the derived slice (returned by append())", &newSlice2)
+		logIntSlice("after appending[growing] to the derived slice", &newSlice)
+		logIntSlice("original slice, after appending[growing] to the derived slice", &slice)
+
+		newSlice2[1] = 35 // this slice was forked, so doesn't affect the original and first derived slices
+		logIntSlice("after modifying the growed derived slice", &newSlice2)
+		logIntSlice("the first derived slice, after modifying the growed derived slice", &newSlice)
+		logIntSlice("original slice, after modifying the growed derived slice", &slice)
+
+		log.Println("")
+	}()
+
+	func() {
+		log.Println("-------------------------------------------------------------------------")
+		log.Println("| three index slices")
+		log.Println("-------------------------------------------------------------------------")
+
+		source := []string{"Apple", "Orange", "Plum", "Banana", "Grape"}
+		logStringSlice("source", &source)
+
+		// This third index gives you control over the capacity of the new slice.
+		// The purpose is not to increase capacity, but to restrict capacity.
+		slice := source[2:3:4]
+		logStringSlice("slice with third index", &slice)
+
+		slice = append(slice, "Mango")	// affects to the original slice
+		logStringSlice("after appending[no growing] to the derived slice", &slice)
+		logStringSlice("original slice, after appending[growing] to the derived slice", &source)
+
+		defer func() {
+			if err := recover(); err != nil {	// catch
+				log.Printf("an expected error: %v", err)
+			}
+		}()
+
+		impossible := source[2:3:6]
+		logStringSlice("runtime error expected", &impossible)
+	}()
+
+	func() {
+		log.Println("-------------------------------------------------------------------------")
+		log.Println("| guarded slicing with third index")
+		log.Println("-------------------------------------------------------------------------")
+
+		source := []string{"Apple", "Orange", "Plum", "Banana", "Grape"}
+		logStringSlice("source", &source)
+
+		guardedSlice := source[2:3:3]
+		logStringSlice("slice with third index, capacity restricted", &guardedSlice)
+
+		guardedSlice = append(guardedSlice, "Kiwi")
+		logStringSlice("after appending the guarded slice", &guardedSlice)
+		logStringSlice("the original slice, after appending the guarded slice", &source)
+	}()
+
+	func() {
+		log.Println("-------------------------------------------------------------------------")
+		log.Println("| appending to a slice from another slice")
+		log.Println("-------------------------------------------------------------------------")
+
+		s1 := []int{1, 2}
+		s2 := []int{3, 4}
+
+		// Using ... operator, you can append all the elements of one slice into another
+		s3 := append(s1, s2...)
+		logIntSlice("to-slice", &s1)
+		logIntSlice("from-slice", &s2)
+		logIntSlice("concatenated slice", &s3)
+
+		// if to-slice have available capacity
+		s4 := make([]int, 0, 5)
+		s4 = append(s4, 1, 2)
+		logIntSlice("to-slice with room to append", &s4)
+
+		s5 := append(s4, s2[0])	// TODO: s4에 충분한 공간이 있으므로 s4와 s5가 동일할 것으로 예상했으나, 예상이 틀림!
+		logIntSlice("result slice of appending", &s5)
+		logIntSlice("original to-slice", &s4)
+
+		s4[0] = 5	// TODO: 그런데 원 슬라이스를 변경하니 그게 반영되다니!!
+		logIntSlice("result slice of appending", &s5)
+		logIntSlice("original to-slice", &s4)
+	}()
+}
+
+func main() {
+	createAndInitSlice()
+	manipulateSlice()
+}

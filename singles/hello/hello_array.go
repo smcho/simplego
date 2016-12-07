@@ -12,7 +12,7 @@ func init() {
 	log.SetFlags(log.Lmicroseconds)
 }
 
-func declAndInit() {
+func declAndInitArray() {
 	func() {
 		var array [5]int
 		log.Printf("array, just declared: %v", array)
@@ -42,7 +42,7 @@ func declAndInit() {
 	}()
 }
 
-func manipulate() {
+func manipulateArray() {
 	func() {
 		array := [5]int{10, 20, 30, 40, 50}
 		copy := array	// array is not a reference type but a value
@@ -112,6 +112,6 @@ func manipulate() {
 }
 
 func main() {
-	declAndInit()
-	manipulate()
+	declAndInitArray()
+	manipulateArray()
 }
