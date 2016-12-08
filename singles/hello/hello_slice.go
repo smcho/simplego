@@ -61,6 +61,17 @@ func createAndInitSlice() {
 	}()
 
 	func() {
+		array := [...]string{"apple", "google", "amazon", "facebook", "oracle"}
+		log.Printf("an array(source): %p->%v, length=%d", &array, array, len(array))
+
+		slice := array[1:4]	// a slice containing the array
+		logStringSlice("slice created by slicing an array", &slice)
+
+		whole := array[:]	// convert an array to a slice
+		logStringSlice("array to slice", &whole)
+	}()
+
+	func() {
 		// A nil slice -> represent a slice that doesn't exist
 		// A nil slice equals(==) to nil!!!
 		var slice []int
@@ -111,6 +122,46 @@ func manipulateSlice() {
 		log.Println("")
 	}()
 
+
+	func() {
+		log.Println("-------------------------------------------------------------------------")
+		log.Println("| illegal slicing")
+		log.Println("-------------------------------------------------------------------------")
+
+		source := []int{10, 20, 30, 40, 50}
+		logIntSlice("source", &source)
+
+		possible := source[1:5] // legal, the end index(5) <= len(source)
+		logIntSlice("legal slicing within the length", &possible)
+
+		defer func() {
+			if err := recover(); err != nil { // catch
+				log.Printf("an expected error: %v", err)
+			}
+			log.Println("")
+		}()
+
+		impossible := source[1:6] // illegal, the end index(6) > len(source)
+		logIntSlice("illegal slicing within the length", &impossible)
+	}()
+
+	func() {
+		log.Println("-------------------------------------------------------------------------")
+		log.Println("| slicing is restricted by the capacity, not the length")
+		log.Println("-------------------------------------------------------------------------")
+
+		source := []int{10, 20, 30, 40, 50}
+		logIntSlice("source", &source)
+
+		possible := source[1:3:4] // legal, the end index(3) <= cap(source)
+		logIntSlice("legal slicing within the length", &possible)
+
+		alsoPossible := possible[0:3] // also legal, the end index(3) > cap(possible)
+		logIntSlice("illegal slicing within the length", &alsoPossible)
+
+		log.Println("")
+	}()
+
 	func() {
 		log.Println("-------------------------------------------------------------------------")
 		log.Println("| append()")
@@ -127,6 +178,8 @@ func manipulateSlice() {
 		logIntSlice("after appending another element", &appended2)
 		logIntSlice("first appended slice, after appending an element", &appended1)
 		logIntSlice("original slice", &slice)
+
+		log.Println("")
 	}()
 
 	func() {
@@ -178,6 +231,7 @@ func manipulateSlice() {
 			if err := recover(); err != nil {	// catch
 				log.Printf("an expected error: %v", err)
 			}
+			log.Println("")
 		}()
 
 		impossible := source[2:3:6]
@@ -198,6 +252,8 @@ func manipulateSlice() {
 		guardedSlice = append(guardedSlice, "Kiwi")
 		logStringSlice("after appending the guarded slice", &guardedSlice)
 		logStringSlice("the original slice, after appending the guarded slice", &source)
+
+		log.Println("")
 	}()
 
 	func() {
@@ -226,7 +282,11 @@ func manipulateSlice() {
 		s4[0] = 5	// the sharing is verified
 		logIntSlice("concatenated slice after modifying original to-slice by [] operator", &s5)
 		logIntSlice("original to-slice", &s4)
+
+		log.Println("")
 	}()
+
+	log.Println("")
 }
 
 func iterateSlice() {
@@ -241,6 +301,8 @@ func iterateSlice() {
 		for i, v := range slice {
 			log.Printf("\tindex: %d -> value: %d", i, v)
 		}
+
+		log.Println("")
 	}()
 
 	func() {
@@ -254,6 +316,8 @@ func iterateSlice() {
 		for i, v := range slice {
 			log.Printf("\tindex: %d -> *value: %p, *elem: %p", i, &v, &slice[i])
 		}
+
+		log.Println("")
 	}()
 
 	func() {
@@ -267,7 +331,11 @@ func iterateSlice() {
 		for i := 2; i < len(slice); i++ {
 			log.Printf("\tindex: %d -> value: %d", i, slice[i])
 		}
+
+		log.Println("")
 	}()
+
+	log.Println("")
 }
 
 func main() {
