@@ -229,7 +229,49 @@ func manipulateSlice() {
 	}()
 }
 
+func iterateSlice() {
+	func() {
+		log.Println("-------------------------------------------------------------------------")
+		log.Println("| iteration by for-range")
+		log.Println("-------------------------------------------------------------------------")
+
+		slice := []int{10, 20, 30, 40}
+		logIntSlice("the slice to iterate:", &slice)
+
+		for i, v := range slice {
+			log.Printf("\tindex: %d -> value: %d", i, v)
+		}
+	}()
+
+	func() {
+		log.Println("-------------------------------------------------------------------------")
+		log.Println("| range provides a copy of each element")
+		log.Println("-------------------------------------------------------------------------")
+
+		slice := []int{10, 20, 30, 40}
+		logIntSlice("the slice to iterate:", &slice)
+
+		for i, v := range slice {
+			log.Printf("\tindex: %d -> *value: %p, *elem: %p", i, &v, &slice[i])
+		}
+	}()
+
+	func() {
+		log.Println("-------------------------------------------------------------------------")
+		log.Println("| iteration by traditional for-index")
+		log.Println("-------------------------------------------------------------------------")
+
+		slice := []int{10, 20, 30, 40}
+		logIntSlice("the slice to iterate:", &slice)
+
+		for i := 2; i < len(slice); i++ {
+			log.Printf("\tindex: %d -> value: %d", i, slice[i])
+		}
+	}()
+}
+
 func main() {
 	createAndInitSlice()
 	manipulateSlice()
+	iterateSlice()
 }
