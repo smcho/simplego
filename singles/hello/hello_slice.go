@@ -3,8 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"reflect"
-	"unsafe"
 )
 
 func init() {
@@ -13,11 +11,23 @@ func init() {
 }
 
 func logStringSlice(prefix string, slice *[]string) {
-	log.Printf(prefix+": %v->%v, length=%d, capacity=%d, isNil=%t", (*reflect.SliceHeader)(unsafe.Pointer(&slice)), *slice, len(*slice), cap(*slice), *slice == nil)
+	if *slice == nil {
+		log.Printf(prefix + ": nil")
+	} else if len(*slice) == 0 {
+		log.Printf(prefix + ": empty, capacity=%d", cap(*slice))
+	} else {
+		log.Printf(prefix + ": %p->%v, length=%d, capacity=%d, isNil=%t", &(*slice)[0], *slice, len(*slice), cap(*slice), *slice == nil)
+	}
 }
 
 func logIntSlice(prefix string, slice *[]int) {
-	log.Printf(prefix+": %v->%v, length=%d, capacity=%d, isNil=%t", (*reflect.SliceHeader)(unsafe.Pointer(&slice)), *slice, len(*slice), cap(*slice), *slice == nil)
+	if *slice == nil {
+		log.Printf(prefix + ": nil")
+	} else if len(*slice) == 0 {
+		log.Printf(prefix + ": empty, capacity=%d", cap(*slice))
+	} else {
+		log.Printf(prefix + ": %p->%v, length=%d, capacity=%d, isNil=%t", &(*slice)[0], *slice, len(*slice), cap(*slice), *slice == nil)
+	}
 }
 
 func createAndInitSlice() {
@@ -105,11 +115,6 @@ func manipulateSlice() {
 		log.Println("-------------------------------------------------------------------------")
 		log.Println("| append()")
 		log.Println("-------------------------------------------------------------------------")
-
-		// TODO: append()가 이해 안 가는 방식으로 동작한다!
-		// append()의 결과물로 항상 새 slice가 나오는 것처럼 보이지만 막상 array는 공유되는 듯
-		// 무조건 s = append(s, ...) 이렇게 써야하는 건가?
-		// 함수에 slice를 넘겨주고 그 안에서 append()를 하면, slice를 반환하지 않는 이상 caller에서는 변경된 slice를 볼 수 없는건가?
 
 		slice := make([]int, 0, 5)
 		logIntSlice("empty slice with 5 capacity", &slice)
@@ -214,12 +219,12 @@ func manipulateSlice() {
 		s4 = append(s4, 1, 2)
 		logIntSlice("to-slice with room to append", &s4)
 
-		s5 := append(s4, s2[0])	// TODO: s4에 충분한 공간이 있으므로 s4와 s5가 동일할 것으로 예상했으나, 예상이 틀림!
+		s5 := append(s4, s2[0])	// s4 and s5 share the underlying array
 		logIntSlice("result slice of appending", &s5)
 		logIntSlice("original to-slice", &s4)
 
-		s4[0] = 5	// TODO: 그런데 원 슬라이스를 변경하니 그게 반영되다니!!
-		logIntSlice("result slice of appending", &s5)
+		s4[0] = 5	// the sharing is verified
+		logIntSlice("concatenated slice after modifying original to-slice by [] operator", &s5)
 		logIntSlice("original to-slice", &s4)
 	}()
 }
