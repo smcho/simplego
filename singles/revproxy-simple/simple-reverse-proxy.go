@@ -11,7 +11,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	loghttp "github.com/motemen/go-loghttp"
 	"github.com/vulcand/oxy/forward"
-	"github.com/vulcand/oxy/utils"
 )
 
 var upstreamUrl *url.URL
@@ -122,8 +121,7 @@ func main() {
 		}
 
 		// let us forward this request to another server
-		req.URL = utils.CopyURL(upstreamUrl)
-		req.URL.Opaque = req.RequestURI // for websocket toward specific URI
+		req.URL = upstreamUrl
 		fwd.ServeHTTP(w, req)
 	})
 
